@@ -1,88 +1,104 @@
 # Paper Library Kit
 
-大量跟进某个领域的论文时，下载堆在一起很容易眼花缭乱。**Paper Library Kit** 提供一种「电影墙」式的管理方式：
+我们大量跟进某个领域的论文时，下载的文论文堆在一起很容易眼花缭乱。**Paper Library Kit** 则提供一种「电影墙」式的管理方式：
 
 - 每篇论文有封面缩略图 + 标签分类，一眼联想内容
 - 本地 PDF 分屏阅读，不用在多个页面跳来跳去
 - 告诉 AI 一个 arXiv 链接，自动下载 PDF、生成缩略图、填写基本信息
 
-> 整个系统由 **Claude Code** 驱动——你只需要说话，AI 做事。
+整个系统由 **Claude Code** 驱动——你只需要说话，AI 做事。
 
 | | | |
 |:---:|:---:|:---:|
 | ![](docs/1-1.gif) | ![](docs/2-1.gif) | ![](docs/3-1.gif) |
 
-## 快速开始
+# 使用方式
+打开 Claude Code，说：
+> 基于这个开源库帮我初始化一个论文库：https://github.com/doubleLLL3/paper-library-kit
 
-**前置条件：**
-- Python 3（自带，无需安装其他依赖）
-- [Claude Code](https://claude.ai/code)
-- poppler（生成封面缩略图）：`brew install poppler`（macOS）或 `apt-get install poppler-utils`（Linux）
+AI 会接管后续所有步骤，只在必要时向你提问。
 
-**启动：**
+日常使用：可以直接说：
+> 帮我添加这篇论文：http://xxx (论文地址)
+
+---
+
+> 以下为 AI 执行指南。当用户说「基于这个库帮我初始化」时，从这里开始执行。
+
+## AI 初始化流程
+
+用户不需要懂编程，你来负责所有操作，只在必要时问用户几个问题。
+
+### 第 1 步：确认安装位置
+
+询问用户：
+> "你想把论文库安装在哪里？直接回车默认安装到 `~/paper-library`"
 
 ```bash
-git clone https://github.com/your-username/paper-library-kit
-cd paper-library-kit
-python3 server.py
-# 浏览器打开 http://localhost:8765
+git clone https://github.com/doubleLLL3/paper-library-kit ~/paper-library
+cd ~/paper-library
 ```
 
-## 用法
+### 第 2 步：检查依赖
 
-打开 Claude Code，直接说：
+```bash
+python3 --version   # 必须，无需安装其他包
 
-> 帮我加这篇论文：https://arxiv.org/abs/2402.10329
-
-AI 会自动完成：下载 PDF → 生成封面图 → 更新数据库 → 写笔记（可选）。
-
-**从现有 PDF 文件夹批量导入：**
-
-> 帮我初始化，PDF 在 ~/Downloads/papers/
-
-AI 会扫描文件夹，自动识别 arXiv ID、抓取元数据、批量导入。
-
-**其他常用指令：**
-- `帮我给 UMI 写深度笔记` — 读 PDF 全文，输出结构化研究笔记
-- `新增一个分类：强化学习` — 在 UI 里添加新分类
-- `把 DexUMI 移到 RL 分类` — 修改论文归类
-
-## UI 功能
-
-- 按**分类**或**机构**两种视角浏览
-- 点击缩略图 → PDF **右侧分屏预览**（ESC 关闭）
-- 点击缩略图（无 PDF）→ 内嵌打开官网/arXiv
-- 搜索框全文搜索（标题/简称/机构/备注）
-- 在线编辑分类、新增/删除论文，**自动保存**（带乐观锁防冲突）
-- ★ 标记里程碑论文
-
-## 项目结构
-
-```
-paper-library-kit/
-├── CLAUDE.md          ← AI 操作手册（所有自动化行为由此驱动）
-├── server.py          ← 本地 HTTP 服务器
-├── index.html         ← 前端 UI
-├── papers.json        ← 论文数据库（唯一数据源）
-├── references/        ← PDF 文件
-│   └── thumbs/        ← 封面缩略图
-├── notes/             ← 结构化研究笔记（Markdown）
-└── scripts/
-    └── gen_thumb.sh   ← 批量生成缩略图
+# poppler（生成封面缩略图）
+command -v pdftoppm || brew install poppler        # macOS
+command -v pdftoppm || sudo apt-get install -y poppler-utils   # Linux
 ```
 
-## 自定义库标题
+### 第 3 步：问用户 2 个问题
 
-编辑 `papers.json` 顶层的 `meta` 字段：
+依次提问，等用户回答再问下一个：
 
+**问题 1 — 库的名字**
+> "你想给这个论文库起什么名字？（直接回车用默认名 Paper Library）"
+
+**问题 2 — 现有 PDF 文件夹**
+> "你有没有一个已经装了 PDF 的文件夹？有的话告诉我路径（比如 ~/Downloads/papers），没有直接回车跳过"
+
+### 第 4 步：写入配置
+
+更新 `papers.json` 里的 `meta` 字段：
 ```json
 {
   "meta": {
-    "title": "我的机器人论文库",
-    "subtitle": "按方向分类 · 由 Claude Code 维护"
+    "title": "用户给的名字",
+    "subtitle": "按分类浏览 · 由 Claude Code 维护"
   }
 }
 ```
+
+### 第 5 步：批量导入现有 PDF（如果用户有）
+
+扫描用户提供的文件夹，对每个 PDF 文件：
+1. 用正则 `\b(\d{4}\.\d{4,5})\b` 从文件名中提取 arXiv ID
+2. 调用 `https://export.arxiv.org/abs/{id}` 获取标题、作者、摘要
+3. 复制 PDF 到 `references/`，用 `scripts/gen_thumb.sh` 生成缩略图
+4. 写入 `papers.json`
+
+最后汇报：成功 N 篇 / 未识别 M 篇（列出文件名）。
+
+### 第 6 步：启动服务器
+
+```bash
+bash start.sh
+```
+
+### 第 7 步：告诉用户
+
+> "论文库已准备好，浏览器打开 http://localhost:8765 即可使用。
+> 之后想加论文，直接告诉我论文链接就行。"
+
+---
+
+## 日常使用（初始化完成后）
+
+详细操作手册见 `CLAUDE.md`，涵盖：添加论文、批量导入、写深度笔记、管理分类。
+
+---
 
 ## 支持作者
 
