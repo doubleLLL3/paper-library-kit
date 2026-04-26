@@ -1,8 +1,16 @@
 # Paper Library Kit
 
-一个由 **Claude Code** 驱动的论文库生成工具。告诉 AI 一个 arXiv 链接，它会自动下载 PDF、生成缩略图、写结构化笔记、更新数据库。
+大量跟进某个领域的论文时，下载堆在一起很容易眼花缭乱。**Paper Library Kit** 提供一种「电影墙」式的管理方式：
 
-![screenshot](https://raw.githubusercontent.com/placeholder/paper-library-kit/main/docs/screenshot.png)
+- 每篇论文有封面缩略图 + 标签分类，一眼联想内容
+- 本地 PDF 分屏阅读，不用在多个页面跳来跳去
+- 告诉 AI 一个 arXiv 链接，自动下载 PDF、生成缩略图、填写基本信息
+
+> 整个系统由 **Claude Code** 驱动——你只需要说话，AI 做事。
+
+| | | |
+|:---:|:---:|:---:|
+| ![](docs/1-1.gif) | ![](docs/2-1.gif) | ![](docs/3-1.gif) |
 
 ## 快速开始
 
