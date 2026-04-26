@@ -1,0 +1,20 @@
+# PDF files (large, user-specific)
+references/*.pdf
+
+# Thumbnails (auto-generated)
+references/thumbs/*.png
+references/thumbs/*.jpg
+
+# Auto-backups
+.backup/
+
+# macOS
+.DS_Store
+
+# Server runtime files
+.server.pid
+.server.log
+
+# Python
+__pycache__/
+*.pyc

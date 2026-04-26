@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper Library</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+    background: #0D1B2A;
+    color: #C2DCF0;
+    line-height: 1.6;
+  }
+
+  /* ─── Layout ─── */
+  .app { display: flex; height: 100vh; }
+  .left {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    transition: flex 0.25s ease;
+  }
+  .right {
+    width: 0;
+    background: #1a1a1a;
+    border-left: 2px solid #02C39A;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.25s ease;
+  }
+  .app.split .left { flex: 0 0 50%; }
+  .app.split .right { width: 50%; }
+  .right-head {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: #0E2030;
+    border-bottom: 1px solid #1C3454;
+    font-size: 12px;
+    color: #7BB8CC;
+    gap: 10px;
+  }
+  .right-head .title {
+    flex: 1;
+    color: #FFFFFF;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .close-btn {
+    background: transparent;
+    border: 1px solid #1C3454;
+    color: #F87171;
+    padding: 3px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  .close-btn:hover { border-color: #F87171; }
+  .close-btn kbd {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 5px;
+    font: 600 10px/1 ui-monospace, SFMono-Regular, monospace;
+    color: #A3B3C8;
+    background: rgba(28, 52, 84, 0.6);
+    border: 1px solid #1C3454;
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+    vertical-align: baseline;
+  }
+  .close-btn:hover kbd { color: #F87171; border-color: #F87171; }
+  .pdf-frame { flex: 1; border: none; background: #1a1a1a; }
+
+  header {
+    padding: 20px 36px 14px;
+    border-bottom: 1px solid #1A3048;
+    background: linear-gradient(180deg, #0E2030 0%, #0D1B2A 100%);
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  h1 { margin: 0 0 6px; font-size: 22px; color: #FFFFFF; font-weight: 700; }
+  header .sub { color: #6A9BBF; font-size: 12.5px; }
+  header .meta { color: #4B7A9E; font-size: 11.5px; margin-top: 3px; }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .btn {
+    padding: 7px 14px;
+    font-size: 12.5px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    border: 1px solid;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-primary { background: #02C39A; color: #0D1B2A; border-color: #02C39A; }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-ghost { background: transparent; color: #7BB8CC; border-color: #1C3454; }
+  .btn-ghost:hover { color: #FFFFFF; border-color: #3381D4; }
+  .save-indicator {
+    font-size: 11px;
+    color: #6A9BBF;
+    min-width: 60px;
+    text-align: right;
+  }
+  .save-indicator.saving { color: #F6C344; }
+  .save-indicator.saved { color: #02C39A; }
+  .save-indicator.error { color: #F87171; }
+
+  .filters {
+    padding: 12px 36px;
+    border-bottom: 1px solid #1A3048;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    background: #0D1B2A;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .filters input {
+    flex: 1;
+    min-width: 180px;
+    padding: 7px 12px;
+    background: #0E2030;
+    border: 1px solid #1C3454;
+    color: #C2DCF0;
+    border-radius: 4px;
+    font-size: 12.5px;
+    outline: none;
+  }
+  .filters input:focus { border-color: #02C39A; }
+  .filter-btn {
+    padding: 5px 12px;
+    background: #0E2030;
+    border: 1px solid #1C3454;
+    color: #7BB8CC;
+    border-radius: 999px;
+    font-size: 11.5px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .filter-btn:hover { border-color: #3381D4; color: #FFFFFF; }
+  .filter-btn.active { background: #02C39A; color: #0D1B2A; border-color: #02C39A; font-weight: 600; }
+
+  .filter-divider {
+    width: 1px;
+    height: 18px;
+    background: #1C3454;
+    margin: 0 4px;
+  }
+  .view-toggle {
+    display: inline-flex;
+    background: #0E2030;
+    border: 1px solid #1C3454;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .view-toggle button {
+    padding: 5px 12px;
+    background: transparent;
+    border: none;
+    color: #7BB8CC;
+    font-size: 11.5px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .view-toggle button.active { background: #3381D4; color: #FFFFFF; font-weight: 600; }
+
+  .org-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 6px;
+    font-size: 9.5px;
+    border-radius: 2px;
+    margin-right: 4px;
+    vertical-align: middle;
+    font-weight: 600;
+  }
+  .org-badge.company { background: #2D1E3A; color: #C084FC; }
+  .org-badge.school  { background: #112A3A; color: #60A5FA; }
+  .org-badge.lab     { background: #2B1F14; color: #FBBF24; }
+
+  main { padding: 14px 36px 40px; }
+  .section { margin-top: 22px; }
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #1A3048;
+  }
+  .section-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .section-title { font-size: 15px; color: #FFFFFF; font-weight: 600; }
+  .section-tag { color: #6A9BBF; font-size: 11.5px; font-style: italic; }
+  .section-count { color: #4B7A9E; font-size: 11px; margin-left: auto; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .card {
+    background: #0E2030;
+    border: 1px solid #1C3454;
+    border-radius: 6px;
+    overflow: hidden;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+  }
+  .card.active {
+    border-color: var(--accent);
+    border-width: 2px;
+    box-shadow: 0 0 0 3px rgba(2, 195, 154, 0.25), 0 8px 20px rgba(0,0,0,0.5);
+    background: #122943;
+  }
+  .card.active::before {
+    content: "▶ 阅读中";
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: var(--accent);
+    color: #0D1B2A;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 3px;
+    z-index: 2;
+    letter-spacing: 0.5px;
+  }
+  .card-thumb {
+    width: 100%;
+    aspect-ratio: 8.5 / 11;
+    max-height: 200px;
+    object-fit: cover;
+    object-position: top center;
+    background: #1C3454;
+    cursor: pointer;
+    border-bottom: 1px solid #1C3454;
+    display: block;
+  }
+  .card-thumb-placeholder {
+    width: 100%;
+    aspect-ratio: 8.5 / 11;
+    max-height: 200px;
+    background: #1C3454;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4B7A9E;
+    font-size: 11px;
+  }
+  .card-body { padding: 12px 14px 14px; flex: 1; display: flex; flex-direction: column; }
+  .card-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1.35;
+    margin-bottom: 4px;
+  }
+  .card-title .short { color: var(--accent); margin-right: 5px; }
+  .card-title .type-tag {
+    display: inline-block;
+    padding: 0 6px;
+    border-radius: 2px;
+    font-size: 9px;
+    font-weight: 600;
+    margin-right: 4px;
+    background: #1C3454;
+    color: #7BB8CC;
+    vertical-align: middle;
+  }
+  .star { color: #F6C344; font-size: 11px; }
+  .card-note {
+    font-size: 10.5px;
+    color: #7BB8CC;
+    margin: 4px 0 10px;
+    line-height: 1.45;
+    flex: 1;
+  }
+  .card-controls {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .card-select {
+    background: #0D1B2A;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 3px 6px;
+    border-radius: 3px;
+    font-size: 10.5px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+  }
+  .card-select:hover { filter: brightness(1.2); }
+  .icon-btn {
+    background: transparent;
+    border: 1px solid #1C3454;
+    color: #6A9BBF;
+    width: 22px;
+    height: 22px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+  }
+  .icon-btn:hover { color: #FFFFFF; border-color: #3381D4; }
+  .icon-btn.danger:hover { color: #F87171; border-color: #F87171; }
+  .card-links {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .link {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 9px;
+    font-size: 10.5px;
+    border-radius: 3px;
+    text-decoration: none;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    border: none;
+  }
+  .link-pdf { background: var(--accent); color: #0D1B2A; }
+  .link-pdf:hover { filter: brightness(1.15); }
+  .link-arxiv {
+    background: transparent;
+    color: #7BB8CC;
+    border: 1px solid #1C3454;
+  }
+  .link-arxiv:hover { border-color: #7BB8CC; color: #FFFFFF; }
+  .arxiv-id {
+    font-family: "SF Mono", monospace;
+    font-size: 9.5px;
+    color: #4B7A9E;
+    margin-left: auto;
+  }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: #0E2030;
+    border: 1px solid #1C3454;
+    border-radius: 8px;
+    padding: 24px;
+    width: 90%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h2 {
+    margin: 0 0 16px;
+    font-size: 17px;
+    color: #FFFFFF;
+  }
+  .field { margin-bottom: 12px; }
+  .field label {
+    display: block;
+    font-size: 11.5px;
+    color: #7BB8CC;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    padding: 7px 10px;
+    background: #0D1B2A;
+    border: 1px solid #1C3454;
+    color: #C2DCF0;
+    border-radius: 4px;
+    font-size: 12.5px;
+    font-family: inherit;
+    outline: none;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: #02C39A; }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+  .checkbox-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: #C2DCF0;
+    cursor: pointer;
+  }
+  .checkbox-field input { width: auto; }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+
+  footer {
+    text-align: center;
+    padding: 20px;
+    color: #4B7A9E;
+    font-size: 10.5px;
+    border-top: 1px solid #1A3048;
+  }
+
+  .left::-webkit-scrollbar { width: 8px; }
+  .left::-webkit-scrollbar-track { background: #0D1B2A; }
+  .left::-webkit-scrollbar-thumb { background: #1C3454; border-radius: 4px; }
+  .left::-webkit-scrollbar-thumb:hover { background: #3381D4; }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <div class="left">
+    <header>
+      <div class="header-top">
+        <div>
+          <h1 id="lib-title">Paper Library</h1>
+          <div class="sub" id="lib-subtitle">按分类浏览 · 支持编辑分类 + 新增论文</div>
+          <div class="meta">点击缩略图分屏预览 PDF · 修改后自动保存</div>
+        </div>
+        <div class="actions">
+          <span class="save-indicator" id="save-indicator">就绪</span>
+          <button class="btn btn-ghost" onclick="openCategoryModal()">🏷️ 管理分类</button>
+          <button class="btn btn-ghost" onclick="openModal()">＋ 新增</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="filters">
+      <input type="text" id="search" placeholder="🔍 搜索标题、简称、机构、备注...">
+      <div class="view-toggle" id="view-toggle">
+        <button data-view="cat" class="active">按分类</button>
+        <button data-view="org">按机构</button>
+      </div>
+      <span class="filter-divider"></span>
+      <div id="filter-bar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"></div>
+    </div>
+
+    <main id="main"></main>
+
+    <footer>
+      数据文件：<code>papers.json</code> · 每次修改自动备份至 <code>.backup/</code> · 由 Claude Code 驱动
+    </footer>
+  </div>
+
+  <div class="right" id="right">
+    <div class="right-head">
+      <span class="title" id="right-title">PDF 预览</span>
+      <a id="right-open-ext" class="close-btn" style="display:none;margin-right:8px;text-decoration:none" target="_blank">↗ 新标签打开</a>
+      <button class="close-btn" onclick="closePdf()" title="按 ESC 关闭分屏">✕ 关闭 <kbd>ESC</kbd></button>
+    </div>
+    <iframe class="pdf-frame" id="pdf-frame" src="" referrerpolicy="no-referrer"></iframe>
+  </div>
+</div>
+
+<!-- ── Category Management Modal ── -->
+<div class="modal-backdrop" id="cat-modal-backdrop">
+  <div class="modal" style="max-width: 640px;">
+    <h2>🏷️ 分类管理</h2>
+    <div id="category-list" style="margin-bottom: 18px;"></div>
+    <div style="border-top: 1px solid #1C3454; padding-top: 14px;">
+      <h2 style="font-size: 14px; margin-bottom: 10px;" id="cat-form-title">新增分类</h2>
+      <input type="hidden" id="cat-edit-id">
+      <div class="field-row">
+        <div class="field">
+          <label>分类 ID（英文小写，唯一标识）</label>
+          <input type="text" id="cat-id" placeholder="例如 robotics">
+        </div>
+        <div class="field" style="flex: 0 0 110px;">
+          <label>颜色</label>
+          <input type="color" id="cat-color" value="#0AB5A8" style="padding: 3px; height: 34px;">
+        </div>
+      </div>
+      <div class="field">
+        <label>显示标题</label>
+        <input type="text" id="cat-title" placeholder="例如 机器人操作">
+      </div>
+      <div class="field">
+        <label>描述 / 副标题</label>
+        <input type="text" id="cat-tag" placeholder="例如 抓取、放置、全身协同">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="resetCatForm()">重置</button>
+        <button class="btn btn-primary" onclick="saveCategory()" id="cat-save-btn">添加</button>
+      </div>
+    </div>
+    <div class="modal-actions" style="border-top: 1px solid #1C3454; padding-top: 14px;">
+      <button class="btn btn-ghost" onclick="closeCategoryModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add / Edit Paper Modal ── -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal">
+    <h2 id="modal-title">新增论文 / 产品</h2>
+    <div class="field">
+      <label>类型</label>
+      <select id="f-type">
+        <option value="paper">论文 (arXiv)</option>
+        <option value="product">产品 / 公司发布</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>分类</label>
+        <select id="f-cat"></select>
+      </div>
+      <div class="field">
+        <label>简称</label>
+        <input type="text" id="f-short" placeholder="例如 UMI 或 Figure02">
+      </div>
+    </div>
+    <div class="field">
+      <label>完整标题</label>
+      <input type="text" id="f-title" placeholder="论文标题 或 产品全称">
+    </div>
+    <div class="field">
+      <label>备注 / 描述</label>
+      <textarea id="f-note" placeholder="机构 · 核心创新 · 关键指标"></textarea>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>所属机构</label>
+        <input type="text" id="f-org" placeholder="例如 Stanford University / NVIDIA">
+      </div>
+      <div class="field" style="flex: 0 0 150px;">
+        <label>机构类型</label>
+        <select id="f-orgType">
+          <option value="">—</option>
+          <option value="company">公司</option>
+          <option value="school">学校 / 研究机构</option>
+          <option value="lab">实验室</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row" id="row-arxiv">
+      <div class="field">
+        <label>arXiv ID（可选）</label>
+        <input type="text" id="f-arxiv" placeholder="例如 2402.10329">
+      </div>
+      <div class="field">
+        <label>PDF 文件名（可选）</label>
+        <input type="text" id="f-pdf" placeholder="放入 references/ 目录后填写">
+      </div>
+    </div>
+    <div class="field" id="row-url" style="display:none">
+      <label>产品/公司链接</label>
+      <input type="text" id="f-url" placeholder="https://...">
+    </div>
+    <div class="field">
+      <label>缩略图文件名（可选，放入 references/thumbs/ 目录）</label>
+      <input type="text" id="f-thumb" placeholder="例如 UMI_2402.10329-01.png">
+    </div>
+    <label class="checkbox-field">
+      <input type="checkbox" id="f-star"> ★ 标记为里程碑
+    </label>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-ghost" id="delete-btn" style="display:none; color:#F87171; border-color:#1C3454;" onclick="deletePaper()">删除</button>
+      <button class="btn btn-primary" onclick="savePaper()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let state = { meta: {}, categories: [], papers: [] };
+let lastMtime = null;
+let editingId = null;
+let activePaperId = null;
+let viewMode = "cat";
+let activeFilter = "all";
+
+const main = document.getElementById("main");
+const app = document.getElementById("app");
+const pdfFrame = document.getElementById("pdf-frame");
+const rightTitle = document.getElementById("right-title");
+const indicator = document.getElementById("save-indicator");
+
+// ── API ──
+async function loadData() {
+  const res = await fetch("/api/papers");
+  lastMtime = res.headers.get("X-Mtime");
+  state = await res.json();
+  if (!state.meta) state.meta = {};
+  if (state.meta.title) document.getElementById("lib-title").textContent = state.meta.title;
+  if (state.meta.subtitle) document.getElementById("lib-subtitle").textContent = state.meta.subtitle;
+  renderFilterBar();
+  populateCatSelect();
+  render();
+}
+
+async function saveData() {
+  indicator.textContent = "保存中...";
+  indicator.className = "save-indicator saving";
+  try {
+    const headers = { "Content-Type": "application/json" };
+    if (lastMtime) headers["X-If-Mtime"] = lastMtime;
+    const res = await fetch("/api/papers", {
+      method: "PUT",
+      headers,
+      body: JSON.stringify(state),
+    });
+    if (res.status === 409) {
+      indicator.textContent = "⚠ 已过期";
+      indicator.className = "save-indicator error";
+      if (confirm("文件在别处被修改过，你当前的改动将覆盖掉它们。\n点『确定』刷新重新加载最新数据（你本次未保存的改动会丢失）；\n点『取消』保留当前改动。")) {
+        await loadData();
+      }
+      return;
+    }
+    if (!res.ok) throw new Error(await res.text());
+    const mt = res.headers.get("X-Mtime");
+    if (mt) lastMtime = mt;
+    indicator.textContent = "✓ 已保存";
+    indicator.className = "save-indicator saved";
+    setTimeout(() => { indicator.textContent = "就绪"; indicator.className = "save-indicator"; }, 1500);
+  } catch (e) {
+    indicator.textContent = "✗ 失败";
+    indicator.className = "save-indicator error";
+    alert("保存失败: " + e.message);
+  }
+}
+
+// ── Render ──
+function escapeHtml(s) {
+  return String(s ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function renderFilterBar() {
+  const bar = document.getElementById("filter-bar");
+  bar.innerHTML = "";
+  const allBtn = document.createElement("button");
+  allBtn.className = "filter-btn" + (activeFilter === "all" ? " active" : "");
+  allBtn.dataset.filter = "all";
+  allBtn.textContent = `全部 (${state.papers.length})`;
+  bar.appendChild(allBtn);
+
+  if (viewMode === "cat") {
+    state.categories.forEach(c => {
+      const count = state.papers.filter(p => p.cat === c.id).length;
+      const btn = document.createElement("button");
+      btn.className = "filter-btn" + (activeFilter === c.id ? " active" : "");
+      btn.dataset.filter = c.id;
+      btn.textContent = `${c.title} (${count})`;
+      bar.appendChild(btn);
+    });
+  } else {
+    const companyCount = state.papers.filter(p => p.orgType === "company").length;
+    const schoolCount = state.papers.filter(p => p.orgType === "school").length;
+    const labCount = state.papers.filter(p => p.orgType === "lab").length;
+    [
+      { k: "type:company", label: `🏢 公司 (${companyCount})` },
+      { k: "type:school",  label: `🎓 学校 (${schoolCount})` },
+    ].concat(labCount ? [{ k: "type:lab", label: `🔬 实验室 (${labCount})` }] : []).forEach(o => {
+      const btn = document.createElement("button");
+      btn.className = "filter-btn" + (activeFilter === o.k ? " active" : "");
+      btn.dataset.filter = o.k;
+      btn.textContent = o.label;
+      bar.appendChild(btn);
+    });
+  }
+
+  bar.querySelectorAll(".filter-btn").forEach(btn => {
+    btn.onclick = () => {
+      activeFilter = btn.dataset.filter;
+      bar.querySelectorAll(".filter-btn").forEach(b => b.classList.toggle("active", b.dataset.filter === activeFilter));
+      render();
+    };
+  });
+}
+
+function setViewMode(mode) {
+  viewMode = mode;
+  activeFilter = "all";
+  document.querySelectorAll("#view-toggle button").forEach(b => b.classList.toggle("active", b.dataset.view === mode));
+  renderFilterBar();
+  render();
+}
+
+function populateCatSelect() {
+  const sel = document.getElementById("f-cat");
+  sel.innerHTML = state.categories.map(c => `<option value="${c.id}">${c.title}</option>`).join("");
+}
+
+function openPdf(pdfName, title, paperId) {
+  if (!pdfName) return;
+  pdfFrame.src = "references/" + pdfName;
+  rightTitle.textContent = title;
+  const extBtn = document.getElementById("right-open-ext");
+  extBtn.href = "references/" + pdfName;
+  extBtn.style.display = "none";
+  app.classList.add("split");
+  activePaperId = paperId || null;
+  updateActiveCard();
+}
+
+function openUrl(url, title, paperId) {
+  if (!url) return;
+  pdfFrame.src = url;
+  rightTitle.textContent = title;
+  const extBtn = document.getElementById("right-open-ext");
+  extBtn.href = url;
+  extBtn.style.display = "inline-block";
+  app.classList.add("split");
+  activePaperId = paperId || null;
+  updateActiveCard();
+  let loaded = false;
+  pdfFrame.addEventListener("load", () => { loaded = true; }, { once: true });
+  setTimeout(() => {
+    if (!loaded) rightTitle.textContent = title + "（该站点可能禁止内嵌，点右上 ↗ 新标签打开）";
+  }, 2500);
+}
+
+function closePdf() {
+  app.classList.remove("split");
+  setTimeout(() => { pdfFrame.src = ""; }, 250);
+  document.getElementById("right-open-ext").style.display = "none";
+  activePaperId = null;
+  updateActiveCard();
+}
+
+function updateActiveCard() {
+  document.querySelectorAll(".card").forEach(c => c.classList.remove("active"));
+  if (activePaperId) {
+    const el = document.querySelector(`.card[data-id="${CSS.escape(activePaperId)}"]`);
+    if (el) el.classList.add("active");
+  }
+}
+
+function changeCategory(id, newCat) {
+  const p = state.papers.find(x => x.id === id);
+  if (!p) return;
+  p.cat = newCat;
+  saveData();
+  renderFilterBar();
+  render();
+}
+
+function toggleStar(id) {
+  const p = state.papers.find(x => x.id === id);
+  if (!p) return;
+  p.star = !p.star;
+  saveData();
+  render();
+}
+
+function matchQuery(p, q) {
+  if (!q) return true;
+  return (p.title?.toLowerCase().includes(q) || p.short?.toLowerCase().includes(q) ||
+          p.note?.toLowerCase().includes(q) || p.org?.toLowerCase().includes(q));
+}
+
+function render() {
+  main.innerHTML = "";
+  const q = document.getElementById("search").value.trim().toLowerCase();
+  let pool = state.papers.filter(p => matchQuery(p, q));
+  if (activeFilter !== "all") {
+    if (activeFilter.startsWith("type:")) {
+      pool = pool.filter(p => p.orgType === activeFilter.slice(5));
+    } else if (viewMode === "cat") {
+      pool = pool.filter(p => p.cat === activeFilter);
+    }
+  }
+
+  if (viewMode === "org") {
+    const groups = new Map();
+    pool.forEach(p => {
+      const key = p.org || "（未指定机构）";
+      if (!groups.has(key)) groups.set(key, { org: p.org || "", orgType: p.orgType || "", papers: [] });
+      groups.get(key).papers.push(p);
+    });
+    const orderMap = { company: 0, school: 1, lab: 2, "": 3 };
+    const sorted = [...groups.entries()].sort((a, b) => {
+      const oa = orderMap[a[1].orgType ?? ""] ?? 9, ob = orderMap[b[1].orgType ?? ""] ?? 9;
+      if (oa !== ob) return oa - ob;
+      if (b[1].papers.length !== a[1].papers.length) return b[1].papers.length - a[1].papers.length;
+      return a[0].localeCompare(b[0]);
+    });
+    for (const [orgName, g] of sorted) {
+      const typeBadge = g.orgType === "company" ? '<span class="org-badge company">🏢 公司</span>'
+                      : g.orgType === "school"  ? '<span class="org-badge school">🎓 学校</span>'
+                      : g.orgType === "lab"     ? '<span class="org-badge lab">🔬 实验室</span>' : '';
+      const section = document.createElement("section");
+      section.className = "section";
+      section.innerHTML = `
+        <div class="section-head">
+          <span class="section-dot" style="background:${g.orgType==='school'?'#60A5FA':g.orgType==='lab'?'#FBBF24':'#C084FC'}"></span>
+          <span class="section-title">${typeBadge}${escapeHtml(orgName)}</span>
+          <span class="section-count">${g.papers.length} 篇</span>
+        </div>
+        <div class="grid">${g.papers.map(renderCard).join("")}</div>`;
+      main.appendChild(section);
+    }
+    updateActiveCard();
+    return;
+  }
+
+  const sections = activeFilter === "all" || activeFilter.startsWith("type:")
+    ? state.categories
+    : state.categories.filter(c => c.id === activeFilter);
+
+  for (const s of sections) {
+    const subset = pool.filter(p => p.cat === s.id);
+    if (subset.length === 0) continue;
+    const section = document.createElement("section");
+    section.className = "section";
+    section.innerHTML = `
+      <div class="section-head">
+        <span class="section-dot" style="background:${s.color}"></span>
+        <span class="section-title">${escapeHtml(s.title)}</span>
+        <span class="section-tag">${escapeHtml(s.tag)}</span>
+        <span class="section-count">${subset.length} 篇</span>
+      </div>
+      <div class="grid">${subset.map(renderCard).join("")}</div>`;
+    main.appendChild(section);
+  }
+  updateActiveCard();
+}
+
+function renderCard(p) {
+  const titleAttr = escapeHtml(`${p.short} — ${p.title}`);
+  const thumbUrl = p.url ? p.url : (p.arxiv ? `https://arxiv.org/abs/${p.arxiv}` : "");
+  const thumbClick = p.pdf
+    ? `onclick="openPdf('${encodeURIComponent(p.pdf)}', '${titleAttr}', '${p.id}')"`
+    : (thumbUrl ? `onclick="openUrl(${JSON.stringify(thumbUrl).replace(/"/g,'&quot;')}, '${titleAttr}', '${p.id}')"` : "");
+  const thumb = p.thumb
+    ? `<img class="card-thumb" src="references/thumbs/${encodeURIComponent(p.thumb)}" alt="${escapeHtml(p.short)}" ${thumbClick} loading="lazy">`
+    : `<div class="card-thumb-placeholder" ${thumbClick} style="${thumbUrl?'cursor:pointer':''}">无预览</div>`;
+  const typeTag = p.type === "product" ? `<span class="type-tag" style="background:#3A1F5C;color:#C084FC">产品</span>` : "";
+  const orgBadge = p.org
+    ? `<span class="org-badge ${p.orgType||''}">${p.orgType==='school'?'🎓':p.orgType==='lab'?'🔬':'🏢'} ${escapeHtml(p.org)}</span>`
+    : "";
+  const pdfBtn = p.pdf
+    ? `<button class="link link-pdf" onclick="openPdf('${encodeURIComponent(p.pdf)}', '${titleAttr}', '${p.id}')">📄 PDF</button>`
+    : "";
+  const sourceBtn = p.arxiv
+    ? `<a class="link link-arxiv" href="https://arxiv.org/abs/${p.arxiv}" target="_blank">↗ arXiv</a>`
+    : (p.url ? `<a class="link link-arxiv" href="${escapeHtml(p.url)}" target="_blank">↗ 官网</a>` : "");
+  let sourceId = "";
+  try { sourceId = p.arxiv || (p.url ? new URL(p.url.startsWith("http")?p.url:"https://"+p.url).hostname : ""); } catch(_){}
+  const selectOptions = state.categories.map(c =>
+    `<option value="${c.id}" ${c.id===p.cat?"selected":""}>${c.title}</option>`
+  ).join("");
+  return `
+  <div class="card ${p.cat}${activePaperId===p.id?" active":""}" data-id="${escapeHtml(p.id)}" style="--accent:${state.categories.find(c=>c.id===p.cat)?.color||'#64748B'}">
+    ${thumb}
+    <div class="card-body">
+      <div class="card-title">
+        ${typeTag}<span class="short">${escapeHtml(p.short)}</span>${p.star?'<span class="star">★</span>':''}
+        ${escapeHtml(p.title)}
+      </div>
+      <div style="margin:2px 0 6px;">${orgBadge}</div>
+      <div class="card-note">${escapeHtml(p.note||'')}</div>
+      <div class="card-controls">
+        <select class="card-select" onchange="changeCategory('${p.id}',this.value)">${selectOptions}</select>
+        <button class="icon-btn" title="切换里程碑" onclick="toggleStar('${p.id}')">${p.star?"★":"☆"}</button>
+        <button class="icon-btn" title="编辑" onclick='openModal(${JSON.stringify(p.id)})'>✎</button>
+      </div>
+      <div class="card-links">${pdfBtn}${sourceBtn}<span class="arxiv-id">${escapeHtml(sourceId)}</span></div>
+    </div>
+  </div>`;
+}
+
+// ── Modal ──
+function openModal(id=null) {
+  editingId = id;
+  const deleteBtn = document.getElementById("delete-btn");
+  if (id) {
+    const p = state.papers.find(x=>x.id===id);
+    document.getElementById("modal-title").textContent = "编辑 · " + p.short;
+    deleteBtn.style.display = "";
+    document.getElementById("f-type").value = p.type||"paper";
+    document.getElementById("f-cat").value = p.cat;
+    document.getElementById("f-short").value = p.short||"";
+    document.getElementById("f-title").value = p.title||"";
+    document.getElementById("f-note").value = p.note||"";
+    document.getElementById("f-arxiv").value = p.arxiv||"";
+    document.getElementById("f-pdf").value = p.pdf||"";
+    document.getElementById("f-url").value = p.url||"";
+    document.getElementById("f-thumb").value = p.thumb||"";
+    document.getElementById("f-org").value = p.org||"";
+    document.getElementById("f-orgType").value = p.orgType||"";
+    document.getElementById("f-star").checked = !!p.star;
+  } else {
+    document.getElementById("modal-title").textContent = "新增论文 / 产品";
+    deleteBtn.style.display = "none";
+    ["f-short","f-title","f-note","f-arxiv","f-pdf","f-url","f-thumb","f-org"].forEach(i=>document.getElementById(i).value="");
+    document.getElementById("f-orgType").value = "";
+    document.getElementById("f-star").checked = false;
+  }
+  toggleTypeFields();
+  document.getElementById("modal-backdrop").classList.add("show");
+}
+
+function closeModal() {
+  document.getElementById("modal-backdrop").classList.remove("show");
+  editingId = null;
+}
+
+function toggleTypeFields() {
+  const type = document.getElementById("f-type").value;
+  document.getElementById("row-arxiv").style.display = type==="paper"?"":"none";
+  document.getElementById("row-url").style.display = type==="product"?"":"none";
+}
+document.getElementById("f-type").addEventListener("change", toggleTypeFields);
+
+function savePaper() {
+  const short = document.getElementById("f-short").value.trim();
+  const title = document.getElementById("f-title").value.trim();
+  if (!short||!title) { alert("简称和标题不能为空"); return; }
+  const data = {
+    id: editingId||(short.toLowerCase().replace(/[^a-z0-9]+/g,"-")+"-"+Date.now().toString(36)),
+    type: document.getElementById("f-type").value,
+    cat: document.getElementById("f-cat").value,
+    short, title,
+    note: document.getElementById("f-note").value.trim(),
+    arxiv: document.getElementById("f-arxiv").value.trim()||null,
+    url: document.getElementById("f-url").value.trim()||null,
+    pdf: document.getElementById("f-pdf").value.trim()||null,
+    thumb: document.getElementById("f-thumb").value.trim()||null,
+    org: document.getElementById("f-org").value.trim()||null,
+    orgType: document.getElementById("f-orgType").value||null,
+    star: document.getElementById("f-star").checked,
+  };
+  if (editingId) {
+    const idx = state.papers.findIndex(x=>x.id===editingId);
+    if (idx>=0) state.papers[idx]=data;
+  } else {
+    state.papers.push(data);
+  }
+  saveData(); closeModal(); renderFilterBar(); render();
+}
+
+function deletePaper() {
+  if (!editingId) return;
+  const p = state.papers.find(x=>x.id===editingId);
+  if (!p||!confirm(`删除 "${p.short}" ?`)) return;
+  state.papers = state.papers.filter(x=>x.id!==editingId);
+  saveData(); closeModal(); renderFilterBar(); render();
+}
+
+// ── Category management ──
+function openCategoryModal() { renderCategoryList(); resetCatForm(); document.getElementById("cat-modal-backdrop").classList.add("show"); }
+function closeCategoryModal() { document.getElementById("cat-modal-backdrop").classList.remove("show"); }
+
+function renderCategoryList() {
+  document.getElementById("category-list").innerHTML = state.categories.map(c => {
+    const count = state.papers.filter(p=>p.cat===c.id).length;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#0D1B2A;border:1px solid #1C3454;border-radius:4px;margin-bottom:6px;">
+      <span style="width:14px;height:14px;border-radius:50%;background:${c.color};flex-shrink:0;"></span>
+      <div style="flex:1;min-width:0;">
+        <div style="color:#FFFFFF;font-size:12.5px;font-weight:600;">${escapeHtml(c.title)} <span style="color:#4B7A9E;font-weight:400;font-size:11px;">(${count} 篇)</span></div>
+        <div style="color:#7BB8CC;font-size:11px;">${escapeHtml(c.tag)}</div>
+      </div>
+      <button class="icon-btn" onclick='editCategory(${JSON.stringify(c.id)})'>✎</button>
+      <button class="icon-btn danger" onclick='deleteCategory(${JSON.stringify(c.id)})'>✕</button>
+    </div>`;
+  }).join("");
+}
+
+function resetCatForm() {
+  document.getElementById("cat-edit-id").value="";
+  document.getElementById("cat-id").value=""; document.getElementById("cat-id").disabled=false;
+  document.getElementById("cat-title").value=""; document.getElementById("cat-tag").value="";
+  document.getElementById("cat-color").value="#0AB5A8";
+  document.getElementById("cat-form-title").textContent="新增分类";
+  document.getElementById("cat-save-btn").textContent="添加";
+}
+
+function editCategory(id) {
+  const c = state.categories.find(x=>x.id===id); if (!c) return;
+  document.getElementById("cat-edit-id").value=c.id;
+  document.getElementById("cat-id").value=c.id; document.getElementById("cat-id").disabled=true;
+  document.getElementById("cat-title").value=c.title; document.getElementById("cat-tag").value=c.tag;
+  document.getElementById("cat-color").value=c.color;
+  document.getElementById("cat-form-title").textContent="编辑分类 · "+c.title;
+  document.getElementById("cat-save-btn").textContent="保存修改";
+}
+
+function saveCategory() {
+  const editId = document.getElementById("cat-edit-id").value;
+  const id = document.getElementById("cat-id").value.trim().toLowerCase();
+  const title = document.getElementById("cat-title").value.trim();
+  const tag = document.getElementById("cat-tag").value.trim();
+  const color = document.getElementById("cat-color").value;
+  if (!id||!title) { alert("ID 和标题不能为空"); return; }
+  if (!/^[a-z0-9_-]+$/.test(id)) { alert("ID 只能包含小写字母、数字、连字符"); return; }
+  if (editId) {
+    const c = state.categories.find(x=>x.id===editId);
+    if (c) { c.title=title; c.tag=tag; c.color=color; }
+  } else {
+    if (state.categories.some(x=>x.id===id)) { alert("该 ID 已存在"); return; }
+    state.categories.push({id,title,tag,color});
+  }
+  saveData(); renderCategoryList(); resetCatForm(); populateCatSelect(); renderFilterBar(); render();
+}
+
+function deleteCategory(id) {
+  const c = state.categories.find(x=>x.id===id); if (!c) return;
+  const count = state.papers.filter(p=>p.cat===id).length;
+  if (count>0) {
+    const fallback = state.categories.find(x=>x.id!==id);
+    if (!fallback) { alert("至少保留一个分类"); return; }
+    if (!confirm(`"${c.title}" 下有 ${count} 篇论文，删除后将移动到 "${fallback.title}"，继续？`)) return;
+    state.papers.forEach(p=>{ if(p.cat===id) p.cat=fallback.id; });
+  } else {
+    if (!confirm(`删除分类 "${c.title}" ?`)) return;
+  }
+  state.categories = state.categories.filter(x=>x.id!==id);
+  if (activeFilter!=="all"&&!activeFilter.startsWith("type:")&&!state.categories.some(c=>c.id===activeFilter)) activeFilter="all";
+  saveData(); renderCategoryList(); populateCatSelect(); renderFilterBar(); render();
+}
+
+// ── Init ──
+function handleEscape() {
+  if (document.getElementById("modal-backdrop").classList.contains("show")) closeModal();
+  else if (app.classList.contains("split")) closePdf();
+}
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") handleEscape(); });
+pdfFrame.addEventListener("load", () => {
+  try { const doc=pdfFrame.contentDocument; if(doc) doc.addEventListener("keydown",e=>{if(e.key==="Escape")handleEscape();}); } catch(_){}
+});
+document.getElementById("search").addEventListener("input", ()=>render());
+document.querySelectorAll("#view-toggle button").forEach(b=>{ b.onclick=()=>setViewMode(b.dataset.view); });
+document.getElementById("modal-backdrop").addEventListener("click",e=>{if(e.target.id==="modal-backdrop")closeModal();});
+document.getElementById("cat-modal-backdrop").addEventListener("click",e=>{if(e.target.id==="cat-modal-backdrop")closeCategoryModal();});
+
+window.openPdf=openPdf; window.openUrl=openUrl; window.closePdf=closePdf;
+window.changeCategory=changeCategory; window.toggleStar=toggleStar;
+window.openModal=openModal; window.closeModal=closeModal; window.savePaper=savePaper; window.deletePaper=deletePaper;
+window.openCategoryModal=openCategoryModal; window.closeCategoryModal=closeCategoryModal;
+window.editCategory=editCategory; window.saveCategory=saveCategory; window.deleteCategory=deleteCategory; window.resetCatForm=resetCatForm;
+
+loadData();
+</script>
+</body>
+</html>

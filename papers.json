@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "title": "My Paper Library",
+    "subtitle": "按主题分类浏览 · 由 Claude Code 维护"
+  },
+  "categories": [
+    {
+      "id": "general",
+      "color": "#64748b",
+      "title": "未分类",
+      "tag": "待整理"
+    }
+  ],
+  "papers": [
+    {
+      "id": "umi",
+      "cat": "general",
+      "short": "UMI",
+      "star": true,
+      "type": "paper",
+      "title": "Universal Manipulation Interface: In-The-Wild Robot Teaching Without In-The-Wild Robots",
+      "note": "Stanford + Columbia 2024 · 手持夹爪 + GoPro 采集末端轨迹，直接训 Diffusion Policy，无需机器人参与数据采集",
+      "arxiv": "2402.10329",
+      "pdf": "UMI_2402.10329.pdf",
+      "thumb": "UMI_2402.10329-01.png",
+      "url": null,
+      "org": "Stanford University",
+      "orgType": "school"
+    }
+  ]
+}
