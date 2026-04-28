@@ -11,13 +11,13 @@
 ### 第 1 步：确认安装位置
 
 询问用户：
-> "你想把论文库安装在哪里？直接回车默认安装到 `~/paper-library-kit`"
+> "你想把论文库安装在哪里？没有特别想法直接说「好」，默认安装到 `~/paper-library`"
 
-如果用户没有偏好，使用 `~/paper-library-kit`。
+如果用户没有偏好，使用 `~/paper-library`。
 
 ```bash
 # 克隆仓库
-git clone https://github.com/YOUR_USERNAME/paper-library ~/paper-library-kit
+git clone https://github.com/doubleLLL3/paper-library-kit ~/paper-library
 # （如果目录已存在就跳过克隆）
 cd ~/paper-library-kit
 ```
@@ -43,10 +43,10 @@ fi
 依次询问，每问完一个等用户回答再问下一个：
 
 **问题 1 — 库的名字**
-> "你想给这个论文库起什么名字？比如『AI 论文库』或『我的机器人论文库』（直接回车用默认名 Paper Library）"
+> "你想给这个论文库起什么名字？比如『AI 论文库』或『我的机器人论文库』，不想改直接说「好」，默认叫 Paper Library"
 
 **问题 2 — 现有 PDF 文件夹**
-> "你有没有一个已经装了 PDF 的文件夹？有的话告诉我路径（比如 ~/Downloads/papers），没有的话直接回车跳过"
+> "你有没有一个已经装了 PDF 的文件夹？有的话告诉我路径（比如 ~/Downloads/papers），没有直接说「没有」"
 
 **问题 3 — 端口（通常不需要问）**
 只有当用户主动提到端口冲突时才问，否则默认用 `8765`。
@@ -70,8 +70,8 @@ fi
 ### 第 6 步：启动服务器
 
 ```bash
-cd ~/paper-library-kit   # 换成实际安装路径
-bash start.sh        # 后台启动，自动开端口
+cd ~/paper-library   # 换成实际安装路径
+bash start.sh        # 后台启动，启动失败会自动报错
 ```
 
 ### 第 7 步：告诉用户完成了
@@ -168,10 +168,8 @@ curl -s "https://export.arxiv.org/api/query?id_list={arXiv_ID}"
 # 复制并重命名到 references/
 cp "/source/path/xxx.pdf" "references/{短名}_{arXiv_ID}.pdf"
 
-# 生成缩略图
-PREFIX="references/thumbs/{短名}_{arXiv_ID}"
-/opt/homebrew/bin/pdftoppm -f 1 -l 1 -r 150 -png "references/{短名}_{arXiv_ID}.pdf" "$PREFIX"
-ls "${PREFIX}-"*.png | head -1 | xargs -I{} mv {} "${PREFIX}-01.png"
+# 生成缩略图（脚本自动跳过已有的，只处理新增的）
+bash scripts/gen_thumb.sh
 ```
 
 ### 第 5 步：归类
@@ -241,23 +239,10 @@ curl -L "https://arxiv.org/pdf/2402.10329" -o "references/UMI_2402.10329.pdf"
 命名规则：`{短名}_{arXiv_ID}-01.png`，存放在 `references/thumbs/`
 
 ```bash
-# macOS (Homebrew poppler)
-PDFPATH="references/{短名}_{arXiv_ID}.pdf"
-PREFIX="references/thumbs/{短名}_{arXiv_ID}"
-/opt/homebrew/bin/pdftoppm -f 1 -l 1 -r 150 -png "$PDFPATH" "$PREFIX"
-# 输出文件名可能是 prefix-1.png 或 prefix-01.png，统一重命名
-ls "${PREFIX}-"*.png | head -1 | xargs -I{} mv {} "${PREFIX}-01.png"
+bash scripts/gen_thumb.sh
 ```
 
-```bash
-# Linux
-pdftoppm -f 1 -l 1 -r 150 -png "$PDFPATH" "$PREFIX"
-ls "${PREFIX}-"*.png | head -1 | xargs -I{} mv {} "${PREFIX}-01.png"
-```
-
-如果 poppler 未安装：
-- macOS: `brew install poppler`
-- Linux: `apt-get install poppler-utils`
+脚本会自动检测 poppler 路径（macOS/Linux 均支持），跳过已有缩略图，只处理新增的 PDF。如果 poppler 未安装，脚本会给出安装提示。
 
 ### 第 4 步：更新 papers.json
 

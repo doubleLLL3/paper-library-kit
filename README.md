@@ -36,7 +36,7 @@ AI 会接管后续所有步骤，只在必要时向你提问。
 ### 第 1 步：确认安装位置
 
 询问用户：
-> "你想把论文库安装在哪里？直接回车默认安装到 `~/paper-library`"
+> "你想把论文库安装在哪里？没有特别想法直接说「好」，默认安装到 `~/paper-library`"
 
 ```bash
 git clone https://github.com/doubleLLL3/paper-library-kit ~/paper-library
@@ -58,10 +58,10 @@ command -v pdftoppm || sudo apt-get install -y poppler-utils   # Linux
 依次提问，等用户回答再问下一个：
 
 **问题 1 — 库的名字**
-> "你想给这个论文库起什么名字？（直接回车用默认名 Paper Library）"
+> "你想给这个论文库起什么名字？不想改直接说「好」，默认叫 Paper Library"
 
 **问题 2 — 现有 PDF 文件夹**
-> "你有没有一个已经装了 PDF 的文件夹？有的话告诉我路径（比如 ~/Downloads/papers），没有直接回车跳过"
+> "你有没有一个已经装了 PDF 的文件夹？有的话告诉我路径（比如 ~/Downloads/papers），没有直接说「没有」"
 
 ### 第 4 步：写入配置
 

@@ -17,8 +17,19 @@ fi
 # Start in background
 nohup python3 "$DIR/server.py" "$PORT" > "$LOGFILE" 2>&1 &
 echo $! > "$PIDFILE"
+PID=$!
 
-sleep 0.8
+sleep 1
+
+# Verify the server actually started
+if ! kill -0 "$PID" 2>/dev/null; then
+  echo ""
+  echo "  ❌ Server failed to start. Error:"
+  cat "$LOGFILE"
+  rm -f "$PIDFILE"
+  exit 1
+fi
+
 echo ""
 echo "  Paper Library is running at: http://localhost:$PORT"
 echo "  To stop:  bash stop.sh"
