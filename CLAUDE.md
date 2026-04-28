@@ -1,6 +1,6 @@
 # Paper Library Kit — AI 操作手册
 
-这是一个由 Claude Code 驱动的论文库生成工具。你（AI）基于这个工具帮用户搭建并维护他们自己的论文知识库。
+这是一个由 AI Agent 驱动的论文库生成工具。你（AI）基于这个工具帮用户搭建并维护他们自己的论文知识库。
 
 ---
 
@@ -10,16 +10,18 @@
 
 ### 第 1 步：确认安装位置
 
-询问用户：
-> "你想把论文库安装在哪里？没有特别想法直接说「好」，默认安装到 `~/paper-library`"
+使用交互式提问（如 `AskUserQuestion`）询问：
+- 问题："你想把论文库安装在哪里？"
+- 选项 1（推荐）："~/paper-library（默认）"
+- 选项 2："当前目录"
+- Other：用户可输入任意路径
 
-如果用户没有偏好，使用 `~/paper-library`。
+根据回答确定安装目录（默认 `~/paper-library`），然后克隆仓库：
 
 ```bash
-# 克隆仓库
+# 克隆仓库到目标目录（如果目录已存在且非空则跳过克隆，直接使用）
 git clone https://github.com/doubleLLL3/paper-library-kit ~/paper-library
-# （如果目录已存在就跳过克隆）
-cd ~/paper-library-kit
+cd ~/paper-library
 ```
 
 ### 第 2 步：检查并安装依赖
@@ -38,18 +40,23 @@ if ! command -v /opt/homebrew/bin/pdftoppm &>/dev/null && ! command -v pdftoppm 
 fi
 ```
 
-### 第 3 步：问用户 3 个问题
+### 第 3 步：问用户 2 个问题
 
-依次询问，每问完一个等用户回答再问下一个：
+使用交互式提问（如 `AskUserQuestion`）一次提出两个问题：
 
 **问题 1 — 库的名字**
-> "你想给这个论文库起什么名字？比如『AI 论文库』或『我的机器人论文库』，不想改直接说「好」，默认叫 Paper Library"
+- header: "库的名字"
+- 选项 1（推荐）："Paper Library（默认）"
+- 选项 2："AI 论文库（示例）"
+- Other：用户自定义名称
 
 **问题 2 — 现有 PDF 文件夹**
-> "你有没有一个已经装了 PDF 的文件夹？有的话告诉我路径（比如 ~/Downloads/papers），没有直接说「没有」"
+- header: "现有 PDF"
+- 选项 1："没有，跳过"
+- 选项 2："~/Downloads/papers（示例，点 Other 输入实际路径）"
+- Other：实际文件夹路径
 
-**问题 3 — 端口（通常不需要问）**
-只有当用户主动提到端口冲突时才问，否则默认用 `8765`。
+**端口**：只有当用户主动提到端口冲突时才问，否则默认用 `8765`。
 
 ### 第 4 步：写入配置
 
@@ -58,7 +65,7 @@ fi
 {
   "meta": {
     "title": "用户给的名字",
-    "subtitle": "按分类浏览 · 由 Claude Code 维护"
+    "subtitle": "按分类浏览 · 由 AI Agent 维护"
   }
 }
 ```

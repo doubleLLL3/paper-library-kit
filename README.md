@@ -6,14 +6,14 @@
 - 本地 PDF 分屏阅读，不用在多个页面跳来跳去
 - 告诉 AI 一个 arXiv 链接，自动下载 PDF、生成缩略图、填写基本信息
 
-整个系统由 **Claude Code** 驱动——你只需要说话，AI 做事。
+整个系统由 **AI Agent 驱动**——你只需要说话，AI 做事。
 
 | 论文墙 | 分类筛选 | 分屏查看 |
 |:---:|:---:|:---:|
 | ![](docs/1-1.gif) | ![](docs/2-1.gif) | ![](docs/3-1.gif) |
 
 # 使用方式
-打开 Claude Code（待尝试其他 AI CLI），对他说：
+打开你的 AI 助手（Claude Code、Cursor 等支持工具调用的 AI Agent），对他说：
 > 基于这个开源库帮我初始化一个论文库：https://github.com/doubleLLL3/paper-library-kit
 
 AI 会接管后续所有步骤，只在必要时向你提问。
