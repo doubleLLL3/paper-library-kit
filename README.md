@@ -104,6 +104,38 @@ bash start.sh
 
 ---
 
+## 非 AI 用户使用
+
+不使用 AI 也可以独立运行和维护论文库。
+
+### 快速启动
+
+```bash
+git clone https://github.com/doubleLLL3/paper-library-kit ~/paper-library
+cd ~/paper-library
+pip install -r requirements.txt
+bash start.sh
+# 浏览器打开 http://localhost:8765
+```
+
+### 添加论文
+
+点击页面右上角「📁 本地导入」按钮：
+
+1. 拖拽或点击选择本地 PDF 文件
+2. 缩略图自动生成，无需额外操作
+3. 按需填写标题、简称、arXiv ID 等（均为选填，只有 PDF 是必须的）
+4. 点击「导入」——卡片立即出现在论文墙
+
+### 其他操作
+
+- **管理分类**：点击「🏷️ 管理分类」新增 / 编辑 / 删除分类
+- **编辑论文**：点卡片上的 ✎ 按钮
+- **分屏阅读**：点论文卡片的缩略图或「📄 PDF」按钮
+- **停止服务**：`bash stop.sh`
+
+---
+
 ## 支持作者
 
 这个项目完全免费开源。如果它帮你节省了整理论文的时间，欢迎请作者喝杯咖啡 ☕

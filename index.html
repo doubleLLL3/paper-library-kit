@@ -470,6 +470,7 @@
         <div class="actions">
           <span class="save-indicator" id="save-indicator">就绪</span>
           <button class="btn btn-ghost" onclick="openCategoryModal()">🏷️ 管理分类</button>
+          <button class="btn btn-ghost" onclick="openUploadModal()">📁 本地导入</button>
           <button class="btn btn-ghost" onclick="openModal()">＋ 新增</button>
         </div>
       </div>
@@ -488,7 +489,7 @@
     <main id="main"></main>
 
     <footer>
-      数据文件：<code>papers.json</code> · 每次修改自动备份至 <code>.backup/</code> · 由 Claude Code 驱动
+      数据文件：<code>papers.json</code> · 每次修改自动备份至 <code>.backup/</code>
     </footer>
   </div>
 
@@ -608,6 +609,70 @@
       <button class="btn btn-ghost" onclick="closeModal()">取消</button>
       <button class="btn btn-ghost" id="delete-btn" style="display:none; color:#F87171; border-color:#1C3454;" onclick="deletePaper()">删除</button>
       <button class="btn btn-primary" onclick="savePaper()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Local Upload Modal ── -->
+<div class="modal-backdrop" id="upload-modal-backdrop">
+  <div class="modal">
+    <h2>📁 导入本地 PDF</h2>
+    <div id="upload-zone" style="border:2px dashed #1C3454;border-radius:6px;padding:28px;text-align:center;cursor:pointer;margin-bottom:16px;transition:border-color 0.15s" onclick="document.getElementById('upload-file').click()">
+      <input type="file" id="upload-file" accept=".pdf" style="display:none" onclick="event.stopPropagation()">
+      <div id="upload-idle">
+        <div style="font-size:32px;margin-bottom:8px">📄</div>
+        <div style="color:#C2DCF0;font-size:13px;font-weight:600">点击选择 PDF，或拖拽到此处</div>
+      </div>
+      <div id="upload-busy" style="display:none;color:#F6C344;font-size:13px">⟳ 上传并生成缩略图中...</div>
+      <div id="upload-done" style="display:none">
+        <img id="upload-thumb-preview" src="" style="max-height:110px;border-radius:4px;margin-bottom:8px;display:none">
+        <div id="upload-done-name" style="color:#02C39A;font-size:12px;font-weight:600"></div>
+        <div style="color:#7BB8CC;font-size:11px;margin-top:4px">点击重新选择</div>
+      </div>
+    </div>
+    <div style="border-top:1px solid #1C3454;padding-top:14px">
+      <div style="font-size:11px;color:#4B7A9E;font-weight:600;margin-bottom:12px;letter-spacing:0.5px">选填信息</div>
+      <div class="field">
+        <label>标题</label>
+        <input type="text" id="u-title" placeholder="不填则使用文件名">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>简称</label>
+          <input type="text" id="u-short" placeholder="自动取首词">
+        </div>
+        <div class="field">
+          <label>分类</label>
+          <select id="u-cat"></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>arXiv ID</label>
+        <input type="text" id="u-arxiv" placeholder="例如 2402.10329（从文件名自动识别）">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>机构</label>
+          <input type="text" id="u-org" placeholder="例如 Stanford University">
+        </div>
+        <div class="field" style="flex:0 0 120px">
+          <label>类型</label>
+          <select id="u-orgType">
+            <option value="">—</option>
+            <option value="school">🎓 学校</option>
+            <option value="company">🏢 公司</option>
+            <option value="lab">🔬 实验室</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>备注</label>
+        <textarea id="u-note" style="min-height:48px" placeholder="简短描述（可选）"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeUploadModal()">取消</button>
+      <button class="btn btn-primary" id="upload-submit-btn" onclick="submitUpload()">导入</button>
     </div>
   </div>
 </div>
@@ -1080,6 +1145,99 @@ window.changeCategory=changeCategory; window.toggleStar=toggleStar;
 window.openModal=openModal; window.closeModal=closeModal; window.savePaper=savePaper; window.deletePaper=deletePaper;
 window.openCategoryModal=openCategoryModal; window.closeCategoryModal=closeCategoryModal;
 window.editCategory=editCategory; window.saveCategory=saveCategory; window.deleteCategory=deleteCategory; window.resetCatForm=resetCatForm;
+
+// ── Upload ──
+let _uploadPdf = null, _uploadThumb = null;
+
+function openUploadModal() {
+  _uploadPdf = null; _uploadThumb = null;
+  document.getElementById("upload-file").value = "";
+  document.getElementById("upload-idle").style.display = "";
+  document.getElementById("upload-busy").style.display = "none";
+  document.getElementById("upload-done").style.display = "none";
+  ["u-title","u-short","u-arxiv","u-note","u-org"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("u-orgType").value = "";
+  document.getElementById("u-cat").innerHTML = state.categories.map(c => `<option value="${c.id}">${c.title}</option>`).join("");
+  const btn = document.getElementById("upload-submit-btn");
+  btn.disabled = true; btn.style.opacity = "0.5"; btn.style.cursor = "not-allowed";
+  document.getElementById("upload-modal-backdrop").classList.add("show");
+}
+function closeUploadModal() { document.getElementById("upload-modal-backdrop").classList.remove("show"); }
+
+const _uploadZone = document.getElementById("upload-zone");
+_uploadZone.addEventListener("dragover", e => { e.preventDefault(); _uploadZone.style.borderColor = "#02C39A"; });
+_uploadZone.addEventListener("dragleave", () => { _uploadZone.style.borderColor = "#1C3454"; });
+_uploadZone.addEventListener("drop", async e => {
+  e.preventDefault(); _uploadZone.style.borderColor = "#1C3454";
+  const f = e.dataTransfer.files[0];
+  if (f?.name.toLowerCase().endsWith(".pdf")) await _doUpload(f);
+  else alert("请选择 PDF 文件");
+});
+document.getElementById("upload-file").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (f) await _doUpload(f);
+});
+
+async function _doUpload(file) {
+  document.getElementById("upload-idle").style.display = "none";
+  document.getElementById("upload-busy").style.display = "";
+  document.getElementById("upload-done").style.display = "none";
+  try {
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/octet-stream", "X-Filename": encodeURIComponent(file.name) },
+      body: file,
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "上传失败");
+    _uploadPdf = data.pdf; _uploadThumb = data.thumb;
+    document.getElementById("upload-busy").style.display = "none";
+    document.getElementById("upload-done").style.display = "";
+    const thumbImg = document.getElementById("upload-thumb-preview");
+    if (data.thumb) { thumbImg.src = "references/thumbs/" + encodeURIComponent(data.thumb); thumbImg.style.display = ""; }
+    document.getElementById("upload-done-name").textContent = "✓ " + data.pdf;
+    // Auto-fill from filename
+    const stem = file.name.replace(/\.pdf$/i, "");
+    const m = stem.match(/\b(\d{4}\.\d{4,5})\b/);
+    if (m && !document.getElementById("u-arxiv").value) document.getElementById("u-arxiv").value = m[1];
+    if (!document.getElementById("u-title").value) {
+      const hint = stem.replace(/\b\d{4}\.\d{4,5}(v\d+)?\b/g, "").replace(/[_\-]+/g, " ").trim();
+      if (hint) document.getElementById("u-title").value = hint;
+    }
+    const btn = document.getElementById("upload-submit-btn");
+    btn.disabled = false; btn.style.opacity = "1"; btn.style.cursor = "pointer";
+  } catch (e) {
+    document.getElementById("upload-busy").style.display = "none";
+    document.getElementById("upload-idle").style.display = "";
+    document.getElementById("upload-idle").innerHTML =
+      `<div style="color:#F87171;margin-bottom:6px">✗ ${escapeHtml(e.message)}</div><div style="color:#4B7A9E;font-size:11px">点击重试</div>`;
+  }
+}
+
+async function submitUpload() {
+  if (!_uploadPdf) return;
+  const stem = _uploadPdf.replace(/\.pdf$/i, "");
+  const title = document.getElementById("u-title").value.trim() || stem.replace(/[_\-]+/g, " ").trim();
+  const short = document.getElementById("u-short").value.trim() || title.split(/\s+/)[0] || stem;
+  state.papers.push({
+    id: short.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + Date.now().toString(36),
+    cat: document.getElementById("u-cat").value || state.categories[0]?.id || "general",
+    short, title, star: false, type: "paper",
+    note: document.getElementById("u-note").value.trim() || null,
+    arxiv: document.getElementById("u-arxiv").value.trim() || null,
+    pdf: _uploadPdf, thumb: _uploadThumb || null, url: null,
+    org: document.getElementById("u-org").value.trim() || null,
+    orgType: document.getElementById("u-orgType").value || null,
+  });
+  await saveData(); closeUploadModal(); renderFilterBar(); render();
+}
+
+document.getElementById("upload-modal-backdrop").addEventListener("click", e => {
+  if (e.target.id === "upload-modal-backdrop") closeUploadModal();
+});
+
+window.openUploadModal = openUploadModal;
+window.closeUploadModal = closeUploadModal;
+window.submitUpload = submitUpload;
 
 loadData();
 </script>

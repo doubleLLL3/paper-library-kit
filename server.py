@@ -3,14 +3,54 @@
 Paper Library local server: GET/PUT papers.json + static file hosting
 Usage: python3 server.py [port]  (default: 8765)
 """
+import glob
 import json
 import os
-import sys
 import shutil
+import subprocess
+import sys
+import urllib.parse
 from datetime import datetime
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
+try:
+    import fitz as _fitz
+    _HAS_FITZ = True
+except ImportError:
+    _HAS_FITZ = False
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def _gen_thumb(pdf_path: str, thumb_path: str) -> bool:
+    """Generate a PNG thumbnail of page 1. Returns True on success."""
+    os.makedirs(os.path.dirname(thumb_path), exist_ok=True)
+    if _HAS_FITZ:
+        try:
+            doc = _fitz.open(pdf_path)
+            pix = doc[0].get_pixmap(matrix=_fitz.Matrix(150 / 72, 150 / 72))
+            pix.save(thumb_path)
+            doc.close()
+            return True
+        except Exception:
+            pass
+    for cmd in ["/opt/homebrew/bin/pdftoppm", "pdftoppm"]:
+        if os.path.isfile(cmd) or shutil.which(cmd):
+            prefix = thumb_path.removesuffix("-01.png")
+            try:
+                subprocess.run(
+                    [cmd, "-f", "1", "-l", "1", "-r", "150", "-png", pdf_path, prefix],
+                    check=True, capture_output=True,
+                )
+                matches = sorted(glob.glob(f"{prefix}-*.png"))
+                if matches:
+                    if matches[0] != thumb_path:
+                        os.rename(matches[0], thumb_path)
+                    return True
+            except (subprocess.CalledProcessError, OSError):
+                pass
+            break
+    return False
 DATA_FILE = os.path.join(BASE_DIR, "papers.json")
 BACKUP_DIR = os.path.join(BASE_DIR, ".backup")
 os.makedirs(BACKUP_DIR, exist_ok=True)
@@ -90,6 +130,29 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_header("X-Mtime", f"{new_mtime:.6f}")
                 self.end_headers()
                 self.wfile.write(data)
+            except Exception as e:
+                self._send_json({"error": str(e)}, 500)
+            return
+        self.send_response(405)
+        self.end_headers()
+
+    def do_POST(self):
+        if self.path == "/api/upload":
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+                if not length:
+                    return self._send_json({"error": "empty body"}, 400)
+                raw_name = self.headers.get("X-Filename", "upload.pdf")
+                filename = os.path.basename(urllib.parse.unquote(raw_name))
+                if not filename.lower().endswith(".pdf"):
+                    filename += ".pdf"
+                pdf_path = os.path.join(BASE_DIR, "references", filename)
+                with open(pdf_path, "wb") as f:
+                    f.write(self.rfile.read(length))
+                thumb_name = filename[:-4] + "-01.png"
+                thumb_path = os.path.join(BASE_DIR, "references", "thumbs", thumb_name)
+                thumb_ok = _gen_thumb(pdf_path, thumb_path)
+                self._send_json({"ok": True, "pdf": filename, "thumb": thumb_name if thumb_ok else None})
             except Exception as e:
                 self._send_json({"error": str(e)}, 500)
             return
