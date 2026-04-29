@@ -6,10 +6,13 @@ Usage: python3 server.py [port]  (default: 8765)
 import glob
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import urllib.parse
+import urllib.request
+import xml.etree.ElementTree as ET
 from datetime import datetime
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
@@ -156,6 +159,63 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"error": str(e)}, 500)
             return
+        if self.path == "/api/arxiv":
+            try:
+                body = self._read_json_body()
+                raw = body.get("id", "").strip()
+                m = re.search(r'\b(\d{4}\.\d{4,5}(?:v\d+)?)\b', raw)
+                if not m:
+                    return self._send_json({"error": "no arXiv ID found"}, 400)
+                arxiv_id = m.group(1).split("v")[0]  # strip version suffix
+
+                # Fetch metadata from arXiv Atom API
+                meta_url = f"https://export.arxiv.org/api/query?id_list={arxiv_id}"
+                with urllib.request.urlopen(meta_url, timeout=15) as resp:
+                    xml_bytes = resp.read()
+                ns = {
+                    "atom": "http://www.w3.org/2005/Atom",
+                    "arxiv": "http://arxiv.org/schemas/atom",
+                }
+                root = ET.fromstring(xml_bytes)
+                entry = root.find("atom:entry", ns)
+                if entry is None:
+                    return self._send_json({"error": "arXiv ID not found"}, 404)
+                title = (entry.findtext("atom:title", "", ns) or "").strip().replace("\n", " ")
+                authors = [
+                    a.findtext("atom:name", "", ns).strip()
+                    for a in entry.findall("atom:author", ns)
+                ]
+                published = entry.findtext("atom:published", "", ns)
+                year = published[:4] if published else ""
+
+                # Download PDF
+                pdf_filename = f"{arxiv_id}.pdf"
+                pdf_path = os.path.join(BASE_DIR, "references", pdf_filename)
+                pdf_url = f"https://arxiv.org/pdf/{arxiv_id}"
+                req = urllib.request.Request(pdf_url, headers={"User-Agent": "paper-library/1.0"})
+                with urllib.request.urlopen(req, timeout=60) as resp:
+                    pdf_bytes = resp.read()
+                os.makedirs(os.path.join(BASE_DIR, "references"), exist_ok=True)
+                with open(pdf_path, "wb") as f:
+                    f.write(pdf_bytes)
+
+                # Generate thumbnail
+                thumb_name = f"{arxiv_id}-01.png"
+                thumb_path = os.path.join(BASE_DIR, "references", "thumbs", thumb_name)
+                thumb_ok = _gen_thumb(pdf_path, thumb_path)
+
+                self._send_json({
+                    "ok": True,
+                    "arxiv": arxiv_id,
+                    "title": title,
+                    "authors": authors,
+                    "year": year,
+                    "pdf": pdf_filename,
+                    "thumb": thumb_name if thumb_ok else None,
+                })
+            except Exception as e:
+                self._send_json({"error": str(e)}, 500)
+            return
         self.send_response(405)
         self.end_headers()
 
@@ -163,7 +223,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, PUT, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-If-Mtime")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-If-Mtime, X-Filename")
         self.end_headers()
 
     def log_message(self, fmt, *args):
