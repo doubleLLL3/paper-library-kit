@@ -298,6 +298,28 @@
     vertical-align: middle;
   }
   .star { color: #F6C344; font-size: 11px; }
+  .card-star-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 3;
+    background: rgba(13,27,42,0.7);
+    border: none;
+    border-radius: 3px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0;
+    color: #4B7A9E;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+  }
+  .card:hover .card-star-btn { opacity: 1; }
+  .card-star-btn.starred { opacity: 1; color: #F6C344; }
   .card-note {
     font-size: 10.5px;
     color: #7BB8CC;
@@ -1038,17 +1060,17 @@ function renderCard(p) {
   ).join("");
   return `
   <div class="card ${p.cat}${activePaperId===p.id?" active":""}" data-id="${escapeHtml(p.id)}" style="--accent:${state.categories.find(c=>c.id===p.cat)?.color||'#64748B'}">
+    <button class="card-star-btn${p.star?' starred':''}" title="切换收藏" onclick="event.stopPropagation();toggleStar('${p.id}')">★</button>
     ${thumb}
     <div class="card-body">
       <div class="card-title">
-        ${typeTag}<span class="short">${escapeHtml(p.short)}</span>${p.star?'<span class="star">★</span>':''}
+        ${typeTag}<span class="short">${escapeHtml(p.short)}</span>
         ${escapeHtml(p.title)}
       </div>
       <div style="margin:2px 0 6px;">${orgBadge}</div>
       <div class="card-note">${escapeHtml(p.note||'')}</div>
       <div class="card-controls">
         <select class="card-select" onchange="changeCategory('${p.id}',this.value)">${selectOptions}</select>
-        <button class="icon-btn" title="切换收藏" onclick="toggleStar('${p.id}')">${p.star?"★":"☆"}</button>
         <button class="icon-btn" title="编辑" onclick='openModal(${JSON.stringify(p.id)})'>✎</button>
       </div>
       <div class="card-links">${pdfBtn}${sourceBtn}<span class="arxiv-id">${escapeHtml(sourceId)}</span></div>
