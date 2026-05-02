@@ -550,8 +550,8 @@
       <input type="hidden" id="cat-edit-id">
       <div class="field-row">
         <div class="field">
-          <label>分类 ID（英文小写，唯一标识）</label>
-          <input type="text" id="cat-id" placeholder="例如 robotics">
+          <label>类名</label>
+          <input type="text" id="cat-title" placeholder="例如 机器人操作">
         </div>
         <div class="field" style="flex: 0 0 110px;">
           <label>颜色</label>
@@ -559,11 +559,7 @@
         </div>
       </div>
       <div class="field">
-        <label>显示标题</label>
-        <input type="text" id="cat-title" placeholder="例如 机器人操作">
-      </div>
-      <div class="field">
-        <label>描述 / 副标题</label>
+        <label>描述</label>
         <input type="text" id="cat-tag" placeholder="例如 抓取、放置、全身协同">
       </div>
       <div class="modal-actions">
@@ -1177,17 +1173,16 @@ function renderCategoryList() {
 
 function resetCatForm() {
   document.getElementById("cat-edit-id").value="";
-  document.getElementById("cat-id").value=""; document.getElementById("cat-id").disabled=false;
   document.getElementById("cat-title").value=""; document.getElementById("cat-tag").value="";
   document.getElementById("cat-color").value="#0AB5A8";
   document.getElementById("cat-form-title").textContent="新增分类";
   document.getElementById("cat-save-btn").textContent="添加";
+  document.getElementById("cat-title").focus();
 }
 
 function editCategory(id) {
   const c = state.categories.find(x=>x.id===id); if (!c) return;
   document.getElementById("cat-edit-id").value=c.id;
-  document.getElementById("cat-id").value=c.id; document.getElementById("cat-id").disabled=true;
   document.getElementById("cat-title").value=c.title; document.getElementById("cat-tag").value=c.tag;
   document.getElementById("cat-color").value=c.color;
   document.getElementById("cat-form-title").textContent="编辑分类 · "+c.title;
@@ -1196,17 +1191,15 @@ function editCategory(id) {
 
 function saveCategory() {
   const editId = document.getElementById("cat-edit-id").value;
-  const id = document.getElementById("cat-id").value.trim().toLowerCase();
   const title = document.getElementById("cat-title").value.trim();
   const tag = document.getElementById("cat-tag").value.trim();
   const color = document.getElementById("cat-color").value;
-  if (!id||!title) { alert("ID 和标题不能为空"); return; }
-  if (!/^[a-z0-9_-]+$/.test(id)) { alert("ID 只能包含小写字母、数字、连字符"); return; }
+  if (!title) { alert("类名不能为空"); return; }
   if (editId) {
     const c = state.categories.find(x=>x.id===editId);
     if (c) { c.title=title; c.tag=tag; c.color=color; }
   } else {
-    if (state.categories.some(x=>x.id===id)) { alert("该 ID 已存在"); return; }
+    const id = "cat-" + Date.now().toString(36).slice(-4) + Math.random().toString(36).slice(2,5);
     state.categories.push({id,title,tag,color});
   }
   saveData(); renderCategoryList(); resetCatForm(); populateCatSelect(); renderFilterBar(); render();
