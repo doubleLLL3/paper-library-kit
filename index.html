@@ -938,7 +938,12 @@ function updateActiveCard() {
   }
 }
 
-function changeCategory(id, newCat) {
+function changeCategory(id, newCat, sel) {
+  if (newCat === '__new__') {
+    if (sel) { const p = state.papers.find(x=>x.id===id); if (p) sel.value = p.cat; }
+    openCategoryModal();
+    return;
+  }
   const p = state.papers.find(x => x.id === id);
   if (!p) return;
   p.cat = newCat;
@@ -1053,7 +1058,7 @@ function renderCard(p) {
   try { sourceId = p.arxiv || (p.url ? new URL(p.url.startsWith("http")?p.url:"https://"+p.url).hostname : ""); } catch(_){}
   const selectOptions = state.categories.map(c =>
     `<option value="${c.id}" ${c.id===p.cat?"selected":""}>${c.title}</option>`
-  ).join("");
+  ).join("") + `<option value="__new__">＋ 添加分类</option>`;
   return `
   <div class="card ${p.cat}${activePaperId===p.id?" active":""}" data-id="${escapeHtml(p.id)}" style="--accent:${state.categories.find(c=>c.id===p.cat)?.color||'#64748B'}">
     <button class="card-star-btn${p.star?' starred':''}" title="切换收藏" onclick="event.stopPropagation();toggleStar('${p.id}')">★</button>
@@ -1066,7 +1071,7 @@ function renderCard(p) {
       <div style="margin:2px 0 6px;">${orgBadge}</div>
       <div class="card-note">${escapeHtml(p.note||'')}</div>
       <div class="card-controls">
-        <select class="card-select" onchange="changeCategory('${p.id}',this.value)">${selectOptions}</select>
+        <select class="card-select" onchange="changeCategory('${p.id}',this.value,this)">${selectOptions}</select>
         <button class="icon-btn" title="编辑" onclick='openModal(${JSON.stringify(p.id)})'>✎</button>
       </div>
       <div class="card-links">${pdfBtn}${sourceBtn}<span class="arxiv-id">${escapeHtml(sourceId)}</span></div>
