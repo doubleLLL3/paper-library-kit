@@ -298,6 +298,36 @@
     vertical-align: middle;
   }
   .star { color: #F6C344; font-size: 11px; }
+  /* ── Bulk select ── */
+  .card.bulk-selected { border-color: #3381D4; box-shadow: 0 0 0 2px rgba(51,129,212,0.35); }
+  .card-check {
+    position: absolute; top: 6px; left: 6px; z-index: 4;
+    width: 18px; height: 18px;
+    accent-color: #3381D4;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .card:hover .card-check,
+  .card-check:checked { opacity: 1; }
+  .card-check:checked ~ .card-star-btn { display: none; }
+  #bulk-bar {
+    display: none;
+    position: fixed; bottom: 24px; right: 24px; z-index: 100;
+    background: #0E2030;
+    border: 1px solid #3381D4;
+    border-radius: 8px;
+    padding: 10px 14px;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  #bulk-bar.show { display: flex; }
+  #bulk-bar select {
+    background: #0D1B2A; border: 1px solid #3381D4; color: #FFFFFF;
+    padding: 4px 8px; border-radius: 4px; font-size: 12px; font-family: inherit;
+  }
+  .bulk-count { color: #7BB8CC; font-size: 12px; }
   .card-star-btn {
     position: absolute;
     top: 6px;
@@ -528,6 +558,13 @@
     <footer>
       数据文件：<code>papers.json</code> · 每次修改自动备份至 <code>.backup/</code>
     </footer>
+  </div>
+
+  <div id="bulk-bar">
+    <span class="bulk-count" id="bulk-count">已选 0 篇</span>
+    <select id="bulk-cat-select"></select>
+    <button class="btn btn-primary" onclick="applyBulkCategory()">修改分类</button>
+    <button class="btn btn-ghost" onclick="clearBulkSelect()">取消</button>
   </div>
 
   <div class="right" id="right">
@@ -1060,7 +1097,8 @@ function renderCard(p) {
     `<option value="${c.id}" ${c.id===p.cat?"selected":""}>${c.title}</option>`
   ).join("") + `<option value="__new__">＋ 添加分类</option>`;
   return `
-  <div class="card ${p.cat}${activePaperId===p.id?" active":""}" data-id="${escapeHtml(p.id)}" style="--accent:${state.categories.find(c=>c.id===p.cat)?.color||'#64748B'}">
+  <div class="card ${p.cat}${activePaperId===p.id?" active":""}${bulkSelected.has(p.id)?" bulk-selected":""}" data-id="${escapeHtml(p.id)}" style="--accent:${state.categories.find(c=>c.id===p.cat)?.color||'#64748B'}">
+    <input type="checkbox" class="card-check" ${bulkSelected.has(p.id)?'checked':''} onclick="event.stopPropagation();toggleBulkSelect('${p.id}',this.checked)">
     <button class="card-star-btn${p.star?' starred':''}" title="切换收藏" onclick="event.stopPropagation();toggleStar('${p.id}')">★</button>
     ${thumb}
     <div class="card-body">
@@ -1226,11 +1264,50 @@ function deleteCategory(id) {
   saveData(); renderCategoryList(); populateCatSelect(); renderFilterBar(); render();
 }
 
+// ── Bulk select ──
+const bulkSelected = new Set();
+
+function toggleBulkSelect(id, checked) {
+  checked ? bulkSelected.add(id) : bulkSelected.delete(id);
+  const card = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
+  if (card) card.classList.toggle("bulk-selected", checked);
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById("bulk-bar");
+  const n = bulkSelected.size;
+  bar.classList.toggle("show", n > 0);
+  document.getElementById("bulk-count").textContent = `已选 ${n} 篇`;
+  if (n > 0) {
+    const opts = state.categories.map(c => `<option value="${c.id}">${c.title}</option>`).join("");
+    document.getElementById("bulk-cat-select").innerHTML = opts;
+  }
+}
+
+function clearBulkSelect() {
+  bulkSelected.clear();
+  document.querySelectorAll(".card-check").forEach(cb => { cb.checked = false; });
+  document.querySelectorAll(".card.bulk-selected").forEach(c => c.classList.remove("bulk-selected"));
+  updateBulkBar();
+}
+
+function applyBulkCategory() {
+  if (!bulkSelected.size) return;
+  const newCat = document.getElementById("bulk-cat-select").value;
+  bulkSelected.forEach(id => {
+    const p = state.papers.find(x => x.id === id);
+    if (p) p.cat = newCat;
+  });
+  saveData(); renderFilterBar();
+  bulkSelected.clear(); updateBulkBar(); render();
+}
+
 // ── Init ──
 function handleEscape() {
   if (document.getElementById("add-modal-backdrop").classList.contains("show")) closeAddModal();
   else if (document.getElementById("modal-backdrop").classList.contains("show")) closeModal();
-  else if (app.classList.contains("split")) closePdf();
+  else if (bulkSelected.size) clearBulkSelect();
   else if (app.classList.contains("split")) closePdf();
 }
 document.addEventListener("keydown", e=>{ if(e.key==="Escape") handleEscape(); });
@@ -1247,6 +1324,7 @@ window.changeCategory=changeCategory; window.toggleStar=toggleStar;
 window.openModal=openModal; window.closeModal=closeModal; window.savePaper=savePaper; window.deletePaper=deletePaper;
 window.openCategoryModal=openCategoryModal; window.closeCategoryModal=closeCategoryModal;
 window.editCategory=editCategory; window.saveCategory=saveCategory; window.deleteCategory=deleteCategory; window.resetCatForm=resetCatForm;
+window.toggleBulkSelect=toggleBulkSelect; window.applyBulkCategory=applyBulkCategory; window.clearBulkSelect=clearBulkSelect;
 
 // ── Add Modal ──
 let _addTab = "local";
