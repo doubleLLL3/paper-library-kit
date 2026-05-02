@@ -31,7 +31,10 @@ if ! kill -0 "$PID" 2>/dev/null; then
 fi
 
 echo ""
-echo "  Paper Library is running at: http://localhost:$PORT"
-echo "  To stop:  bash stop.sh"
-echo "  Logs:     $LOGFILE"
+echo "  ✅ Paper Library 已启动！"
+echo ""
+echo "  👉 在浏览器中打开：http://localhost:$PORT"
+echo ""
+echo "  停止服务：bash stop.sh"
+echo "  查看日志：$LOGFILE"
 echo ""
